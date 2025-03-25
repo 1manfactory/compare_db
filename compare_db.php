@@ -13,27 +13,27 @@ declare(strict_types=1);
  */
 function loadEnv(string $filePath): void
 {
-    if (!file_exists($filePath)) {
-        throw new Exception("The .env file was not found. Please create one by copying the .env.example file and renaming it to .env.");
-    }
+	if (!file_exists($filePath)) {
+		throw new Exception("The .env file was not found. Please create one by copying the .env.example file and renaming it to .env.");
+	}
 
-    $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    if ($lines === false) {
-        throw new Exception("Unable to read the .env file.");
-    }
+	$lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+	if ($lines === false) {
+		throw new Exception("Unable to read the .env file.");
+	}
 
-    foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0) {
-            continue; // Kommentare überspringen
-        }
-        list($name, $value) = explode('=', $line, 2);
-        $name = trim($name);
-        $value = trim($value);
+	foreach ($lines as $line) {
+		if (strpos(trim($line), '#') === 0) {
+			continue; // Kommentare überspringen
+		}
+		list($name, $value) = explode('=', $line, 2);
+		$name = trim($name);
+		$value = trim($value);
 
-        putenv("$name=$value");
-        $_ENV[$name] = $value;
-        $_SERVER[$name] = $value;
-    }
+		putenv("$name=$value");
+		$_ENV[$name] = $value;
+		$_SERVER[$name] = $value;
+	}
 }
 
 /**
@@ -50,29 +50,33 @@ function loadEnv(string $filePath): void
  */
 function getDbConnection(string $host, string $user, string $password, ?string $database = null): PDO
 {
-    $dsn = "mysql:host=$host;charset=utf8mb4";
-    if ($database !== null && $database !== '') {
-        $dsn .= ";dbname=$database";
-    }
-    return new PDO($dsn, $user, $password, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+	$dsn = "mysql:host=$host;charset=utf8mb4";
+	if ($database !== null && $database !== '') {
+		$dsn .= ";dbname=$database";
+	}
+	return new PDO($dsn, $user, $password, [
+		PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+		PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+	]);
 }
 
 /**
- * Ermittelt alle Datenbanken des Servers und filtert Systemdatenbanken heraus.
+ * Retrieves all databases from the server and filters out system databases.
  *
- * @param PDO $pdo Die PDO-Verbindung zum Server (ohne spezielle Datenbank).
- * @return array Liste der Datenbanknamen.
+ * @param PDO $pdo The PDO connection to the server (without a specific database selected).
+ * @return string[] List of database names.
+ * @throws Exception If the query fails.
  */
 function getDatabases(PDO $pdo): array
 {
-    $stmt = $pdo->query("SHOW DATABASES");
-    $databases = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    // Systemdatenbanken ausschließen
-    $exclude = ['mysql', 'information_schema', 'performance_schema', 'sys'];
-    return array_values(array_filter($databases, fn($db) => !in_array($db, $exclude, true)));
+	$stmt = $pdo->query("SHOW DATABASES");
+	if ($stmt === false) {
+		throw new Exception("Failed to execute query: SHOW DATABASES");
+	}
+	$databases = $stmt->fetchAll(PDO::FETCH_COLUMN);
+	// Exclude system databases
+	$exclude = ['mysql', 'information_schema', 'performance_schema', 'sys'];
+	return array_values(array_filter($databases, fn($db) => !in_array($db, $exclude, true)));
 }
 
 /**
@@ -84,41 +88,41 @@ function getDatabases(PDO $pdo): array
  */
 function getQueryAndColumn(string $type): array
 {
-    $config = [
-        'tables' => [
-            'query' => "SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = ? AND TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME NOT REGEXP '_(mv|pv)$'",
-            'createQuery' => function (string $name) {
-                return "SHOW CREATE TABLE `$name`";
-            },
-            'column' => 'Create Table'
-        ],
-        'views' => [
-            'query' => "SELECT TABLE_NAME FROM information_schema.views WHERE table_schema = ?",
-            'createQuery' => function (string $name) {
-                return "SHOW CREATE VIEW `$name`";
-            },
-            'column' => 'Create View'
-        ],
-        'procedures' => [
-            'query' => "SELECT ROUTINE_NAME FROM information_schema.routines WHERE routine_schema = ? AND ROUTINE_TYPE = 'PROCEDURE'",
-            'createQuery' => function (string $name) {
-                return "SHOW CREATE PROCEDURE `$name`";
-            },
-            'column' => 'Create Procedure'
-        ],
-        'functions' => [
-            'query' => "SELECT ROUTINE_NAME FROM information_schema.routines WHERE routine_schema = ? AND ROUTINE_TYPE = 'FUNCTION'",
-            'createQuery' => function (string $name) {
-                return "SHOW CREATE FUNCTION `$name`";
-            },
-            'column' => 'Create Function'
-        ],
-    ];
+	$config = [
+		'tables' => [
+			'query' => "SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = ? AND TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME NOT REGEXP '_(mv|pv)$'",
+			'createQuery' => function (string $name) {
+				return "SHOW CREATE TABLE `$name`";
+			},
+			'column' => 'Create Table'
+		],
+		'views' => [
+			'query' => "SELECT TABLE_NAME FROM information_schema.views WHERE table_schema = ?",
+			'createQuery' => function (string $name) {
+				return "SHOW CREATE VIEW `$name`";
+			},
+			'column' => 'Create View'
+		],
+		'procedures' => [
+			'query' => "SELECT ROUTINE_NAME FROM information_schema.routines WHERE routine_schema = ? AND ROUTINE_TYPE = 'PROCEDURE'",
+			'createQuery' => function (string $name) {
+				return "SHOW CREATE PROCEDURE `$name`";
+			},
+			'column' => 'Create Procedure'
+		],
+		'functions' => [
+			'query' => "SELECT ROUTINE_NAME FROM information_schema.routines WHERE routine_schema = ? AND ROUTINE_TYPE = 'FUNCTION'",
+			'createQuery' => function (string $name) {
+				return "SHOW CREATE FUNCTION `$name`";
+			},
+			'column' => 'Create Function'
+		],
+	];
 
-    if (!isset($config[$type])) {
-        throw new InvalidArgumentException("Unknown type: $type");
-    }
-    return $config[$type];
+	if (!isset($config[$type])) {
+		throw new InvalidArgumentException("Unknown type: $type");
+	}
+	return $config[$type];
 }
 
 /**
@@ -134,40 +138,40 @@ function getQueryAndColumn(string $type): array
  */
 function processCreateStatement(PDO $pdo, string $name, callable $createQueryFunc, string $column): string
 {
-    $createQuery = $createQueryFunc($name);
-    $stmtCreate = $pdo->query($createQuery);
-    if ($stmtCreate === false) {
-        throw new Exception("Query failed: $createQuery");
-    }
-    $result = $stmtCreate->fetch(PDO::FETCH_ASSOC);
-    if (!is_array($result) || !array_key_exists($column, $result)) {
-        throw new Exception("Expected column '$column' not found in the result.");
-    }
-    $createStmt = $result[$column];
+	$createQuery = $createQueryFunc($name);
+	$stmtCreate = $pdo->query($createQuery);
+	if ($stmtCreate === false) {
+		throw new Exception("Query failed: $createQuery");
+	}
+	$result = $stmtCreate->fetch(PDO::FETCH_ASSOC);
+	if (!is_array($result) || !array_key_exists($column, $result)) {
+		throw new Exception("Expected column '$column' not found in the result.");
+	}
+	$createStmt = $result[$column];
 
-    // AUTO_INCREMENT entfernen
-    $createStmt = preg_replace('/AUTO_INCREMENT=\d+\s*/i', '', $createStmt);
-    if (!is_string($createStmt)) {
-        $createStmt = is_array($createStmt) ? implode("\n", $createStmt) : '';
-    }
+	// AUTO_INCREMENT entfernen
+	$createStmt = preg_replace('/AUTO_INCREMENT=\d+\s*/i', '', $createStmt);
+	if (!is_string($createStmt)) {
+		$createStmt = is_array($createStmt) ? implode("\n", $createStmt) : '';
+	}
 
-    // DEFINER entfernen
-    $createStmt = preg_replace('/DEFINER=`[^`]+`@`[^`]+`\s*/i', '', $createStmt);
-    if ($createStmt === null) {
-        throw new Exception("Unexpected null returned from preg_replace for DEFINER removal.");
-    }
+	// DEFINER entfernen
+	$createStmt = preg_replace('/DEFINER=`[^`]+`@`[^`]+`\s*/i', '', $createStmt);
+	if ($createStmt === null) {
+		throw new Exception("Unexpected null returned from preg_replace for DEFINER removal.");
+	}
 
-    return $createStmt;
+	return $createStmt;
 }
 
 /**
- * Ermittelt die CREATE-Anweisungen für Tabellen, Views, Prozeduren oder Funktionen in der angegebenen Datenbank.
+ * Retrieves the CREATE statements for tables, views, procedures, or functions in the specified database.
  *
- * @param PDO    $pdo      Die PDO-Datenbankverbindung.
- * @param string $database Der Name der Datenbank.
- * @param string $type     Erlaubte Werte: 'tables', 'views', 'procedures', 'functions'.
- * @return array<string, string> Assoziatives Array, Schlüssel: Objektname, Wert: CREATE-Anweisung.
- * @throws Exception Falls erwartete Indizes fehlen.
+ * @param PDO    $pdo      The PDO database connection.
+ * @param string $database The name of the database.
+ * @param string $type     Allowed values: 'tables', 'views', 'procedures', 'functions'.
+ * @return array<string, string> An associative array where the key is the object name and the value is the CREATE statement.
+ * @throws Exception If the expected index is missing or not a string.
  */
 function getCreateStatements(PDO $pdo, string $database, string $type): array
 {
@@ -176,7 +180,10 @@ function getCreateStatements(PDO $pdo, string $database, string $type): array
     $stmt->execute([$database]);
 
     $items = [];
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+        if (!is_array($row)) {
+            throw new Exception("Expected row to be an array, got " . gettype($row));
+        }
         $nameKey = ($type === 'tables' || $type === 'views') ? 'TABLE_NAME' : 'ROUTINE_NAME';
         if (!isset($row[$nameKey]) || !is_string($row[$nameKey])) {
             throw new Exception("Expected index '$nameKey' not found or not a string.");
@@ -197,33 +204,33 @@ function getCreateStatements(PDO $pdo, string $database, string $type): array
  */
 function compareStructures(string $label, array $dev, array $prod): bool
 {
-    $diffs = [];
-    $allKeys = array_unique(array_merge(array_keys($dev), array_keys($prod)));
+	$diffs = [];
+	$allKeys = array_unique(array_merge(array_keys($dev), array_keys($prod)));
 
-    foreach ($allKeys as $key) {
-        $devStmt = $dev[$key] ?? null;
-        $prodStmt = $prod[$key] ?? null;
+	foreach ($allKeys as $key) {
+		$devStmt = $dev[$key] ?? null;
+		$prodStmt = $prod[$key] ?? null;
 
-        if ($devStmt !== $prodStmt) {
-            $diffs[] = "\033[31m❌ Difference in $label: $key\033[0m";
+		if ($devStmt !== $prodStmt) {
+			$diffs[] = "\033[31m❌ Difference in $label: $key\033[0m";
 
-            if ($devStmt === null) {
-                $diffs[] = "\033[31m❌ Not found in DEV\033[0m";
-            } elseif ($prodStmt === null) {
-                $diffs[] = "\033[31m❌ Not found in PROD\033[0m";
-            } else {
-                $diffs[] = generateDiff($devStmt, $prodStmt);
-            }
-        }
-    }
+			if ($devStmt === null) {
+				$diffs[] = "\033[31m❌ Not found in DEV\033[0m";
+			} elseif ($prodStmt === null) {
+				$diffs[] = "\033[31m❌ Not found in PROD\033[0m";
+			} else {
+				$diffs[] = generateDiff($devStmt, $prodStmt);
+			}
+		}
+	}
 
-    if (count($diffs) > 0) {
-        echo implode("\n", $diffs) . "\n";
-        return false;
-    }
+	if (count($diffs) > 0) {
+		echo implode("\n", $diffs) . "\n";
+		return false;
+	}
 
-    echo "\033[32m✅ No differences in $label\033[0m\n";
-    return true;
+	echo "\033[32m✅ No differences in $label\033[0m\n";
+	return true;
 }
 
 /**
@@ -236,148 +243,147 @@ function compareStructures(string $label, array $dev, array $prod): bool
  */
 function generateDiff(string $devStmt, string $prodStmt, int $context = 3): string
 {
-    $devLines = explode("\n", $devStmt);
-    $prodLines = explode("\n", $prodStmt);
-    $numDev = count($devLines);
-    $numProd = count($prodLines);
-    $maxLines = max($numDev, $numProd);
+	$devLines = explode("\n", $devStmt);
+	$prodLines = explode("\n", $prodStmt);
+	$numDev = count($devLines);
+	$numProd = count($prodLines);
+	$maxLines = max($numDev, $numProd);
 
-    $diffIndices = [];
-    for ($i = 0; $i < $maxLines; $i++) {
-        $devLine = $devLines[$i] ?? '';
-        $prodLine = $prodLines[$i] ?? '';
-        if ($devLine !== $prodLine) {
-            $diffIndices[] = $i;
-        }
-    }
+	$diffIndices = [];
+	for ($i = 0; $i < $maxLines; $i++) {
+		$devLine = $devLines[$i] ?? '';
+		$prodLine = $prodLines[$i] ?? '';
+		if ($devLine !== $prodLine) {
+			$diffIndices[] = $i;
+		}
+	}
 
-    if (empty($diffIndices)) {
-        return "Keine Unterschiede gefunden.";
-    }
+	if (empty($diffIndices)) {
+		return "No differences found.";
+	}
 
-    $blocks = [];
-    $blockStart = null;
-    $blockEnd = null;
-    foreach ($diffIndices as $diffIndex) {
-        if ($blockStart === null) {
-            $blockStart = max(0, $diffIndex - $context);
-            $blockEnd = min($maxLines - 1, $diffIndex + $context);
-        } else {
-            if ($diffIndex - $context <= $blockEnd + 1) {
-                $blockEnd = min($maxLines - 1, $diffIndex + $context);
-            } else {
-                $blocks[] = [$blockStart, $blockEnd];
-                $blockStart = max(0, $diffIndex - $context);
-                $blockEnd = min($maxLines - 1, $diffIndex + $context);
-            }
-        }
-    }
-    if ($blockStart !== null) {
-        $blocks[] = [$blockStart, $blockEnd];
-    }
+	$blocks = [];
+	$blockStart = null;
+	$blockEnd = null;
+	foreach ($diffIndices as $diffIndex) {
+		if ($blockStart === null) {
+			$blockStart = max(0, $diffIndex - $context);
+			$blockEnd = min($maxLines - 1, $diffIndex + $context);
+		} else {
+			if ($diffIndex - $context <= $blockEnd + 1) {
+				$blockEnd = min($maxLines - 1, $diffIndex + $context);
+			} else {
+				$blocks[] = [$blockStart, $blockEnd];
+				$blockStart = max(0, $diffIndex - $context);
+				$blockEnd = min($maxLines - 1, $diffIndex + $context);
+			}
+		}
+	}
+	if ($blockStart !== null) {
+		$blocks[] = [$blockStart, $blockEnd];
+	}
 
-    $outputLines = [];
-    $prevBlockEnd = -1;
-    foreach ($blocks as $block) {
-        list($start, $end) = $block;
-        if ($start > $prevBlockEnd + 1) {
-            $outputLines[] = "...";
-        }
-        for ($i = $start; $i <= $end; $i++) {
-            $devLine = $devLines[$i] ?? '';
-            $prodLine = $prodLines[$i] ?? '';
-            if ($devLine === $prodLine) {
-                $outputLines[] = "  $devLine";
-            } else {
-                $outputLines[] = "\033[31m- $devLine\033[0m";
-                $outputLines[] = "\033[32m+ $prodLine\033[0m";
-            }
-        }
-        $prevBlockEnd = $end;
-    }
+	$outputLines = [];
+	$prevBlockEnd = -1;
+	foreach ($blocks as $block) {
+		list($start, $end) = $block;
+		if ($start > $prevBlockEnd + 1) {
+			$outputLines[] = "...";
+		}
+		for ($i = $start; $i <= $end; $i++) {
+			$devLine = $devLines[$i] ?? '';
+			$prodLine = $prodLines[$i] ?? '';
+			if ($devLine === $prodLine) {
+				$outputLines[] = "  $devLine";
+			} else {
+				$outputLines[] = "\033[31m- $devLine\033[0m";
+				$outputLines[] = "\033[32m+ $prodLine\033[0m";
+			}
+		}
+		$prevBlockEnd = $end;
+	}
 
-    return implode("\n", $outputLines);
+	return implode("\n", $outputLines);
 }
 
-
-// Hauptskript
+// Main
 try {
-    loadEnv(__DIR__ . '/.env');
+	loadEnv(__DIR__ . '/.env');
 
-    // Lese Verbindungsdaten für DEV und PROD aus den Umgebungsvariablen
-    $devHost = getenv('DEV_DB_HOST');
-    $devUser = getenv('DEV_DB_USER');
-    $devPass = getenv('DEV_DB_PASS');
-    $prodHost = getenv('PROD_DB_HOST');
-    $prodUser = getenv('PROD_DB_USER');
-    $prodPass = getenv('PROD_DB_PASS');
+	// Lese Verbindungsdaten für DEV und PROD aus den Umgebungsvariablen
+	$devHost = getenv('DEV_DB_HOST');
+	$devUser = getenv('DEV_DB_USER');
+	$devPass = getenv('DEV_DB_PASS');
+	$prodHost = getenv('PROD_DB_HOST');
+	$prodUser = getenv('PROD_DB_USER');
+	$prodPass = getenv('PROD_DB_PASS');
 
-    if ($devHost === false || $devUser === false || $devPass === false) {
-        throw new Exception('One or more environment variables for the DEV database connection are missing.');
-    }
-    if ($prodHost === false || $prodUser === false || $prodPass === false) {
-        throw new Exception('One or more environment variables for the PROD database connection are missing.');
-    }
+	if ($devHost === false || $devUser === false || $devPass === false) {
+		throw new Exception('One or more environment variables for the DEV database connection are missing.');
+	}
+	if ($prodHost === false || $prodUser === false || $prodPass === false) {
+		throw new Exception('One or more environment variables for the PROD database connection are missing.');
+	}
 
-    // Verbindung zum Server (ohne spezifische DB) herstellen
-    $devServerPdo = getDbConnection($devHost, $devUser, $devPass);
-    $prodServerPdo = getDbConnection($prodHost, $prodUser, $prodPass);
+	// Verbindung zum Server (ohne spezifische DB) herstellen
+	$devServerPdo = getDbConnection($devHost, $devUser, $devPass);
+	$prodServerPdo = getDbConnection($prodHost, $prodUser, $prodPass);
 
-    // Erhalte alle nicht-system-Datenbanken
-    $devDatabases = getDatabases($devServerPdo);
-    $prodDatabases = getDatabases($prodServerPdo);
+	// Erhalte alle nicht-system-Datenbanken
+	$devDatabases = getDatabases($devServerPdo);
+	$prodDatabases = getDatabases($prodServerPdo);
 
-    // Ausgabe der gefundenen Datenbanken
-    echo "DEV databases: " . implode(', ', $devDatabases) . "\n";
-    echo "PROD databases: " . implode(', ', $prodDatabases) . "\n";
+	// Ausgabe der gefundenen Datenbanken
+	echo "DEV databases: " . implode(', ', $devDatabases) . "\n";
+	echo "PROD databases: " . implode(', ', $prodDatabases) . "\n";
 
-    $errors = false;
+	$errors = false;
 
-    // Vergleiche nur Datenbanken, die in beiden Umgebungen existieren
-    $commonDatabases = array_intersect($devDatabases, $prodDatabases);
-    foreach ($commonDatabases as $database) {
-        echo "\n\033[34m== Vergleiche Datenbank: $database ==\033[0m\n";
+	// Vergleiche nur Datenbanken, die in beiden Umgebungen existieren
+	$commonDatabases = array_intersect($devDatabases, $prodDatabases);
+	foreach ($commonDatabases as $database) {
+		echo "\n\033[34m== Comparing database: $database ==\033[0m\n";
 
-        // Für jede Datenbank wird eine separate Verbindung aufgebaut
-        $devPdo = getDbConnection($devHost, $devUser, $devPass, $database);
-        $prodPdo = getDbConnection($prodHost, $prodUser, $prodPass, $database);
+		// Für jede Datenbank wird eine separate Verbindung aufgebaut
+		$devPdo = getDbConnection($devHost, $devUser, $devPass, $database);
+		$prodPdo = getDbConnection($prodHost, $prodUser, $prodPass, $database);
 
-        $checks = [
-            'tables' => 'Tables',
-            'views' => 'Views',
-            'procedures' => 'Procedures',
-            'functions' => 'Functions'
-        ];
+		$checks = [
+			'tables' => 'Tables',
+			'views' => 'Views',
+			'procedures' => 'Procedures',
+			'functions' => 'Functions'
+		];
 
-        foreach ($checks as $type => $label) {
-            $devStruct = getCreateStatements($devPdo, $database, $type);
-            $prodStruct = getCreateStatements($prodPdo, $database, $type);
+		foreach ($checks as $type => $label) {
+			$devStruct = getCreateStatements($devPdo, $database, $type);
+			$prodStruct = getCreateStatements($prodPdo, $database, $type);
 
-            if (!compareStructures($label, $devStruct, $prodStruct)) {
-                $errors = true;
-            }
-        }
-    }
+			if (!compareStructures($label, $devStruct, $prodStruct)) {
+				$errors = true;
+			}
+		}
+	}
 
-    // Überprüfe, ob es Datenbanken gibt, die nur in einer Umgebung existieren
-    $devOnly = array_diff($devDatabases, $prodDatabases);
-    $prodOnly = array_diff($prodDatabases, $devDatabases);
+	// Überprüfe, ob es Datenbanken gibt, die nur in einer Umgebung existieren
+	$devOnly = array_diff($devDatabases, $prodDatabases);
+	$prodOnly = array_diff($prodDatabases, $devDatabases);
 
-    if (!empty($devOnly)) {
-        echo "\n\033[33mWARNUNG: Die folgenden Datenbanken existieren nur in DEV: " . implode(', ', $devOnly) . "\033[0m\n";
-        $errors = true;
-    }
-    if (!empty($prodOnly)) {
-        echo "\n\033[33mWARNUNG: Die folgenden Datenbanken existieren nur in PROD: " . implode(', ', $prodOnly) . "\033[0m\n";
-        $errors = true;
-    }
+	if (!empty($devOnly)) {
+		echo "\n\033[33mWARNING: The following databases exist only in DEV: " . implode(', ', $devOnly) . "\033[0m\n";
+		$errors = true;
+	}
+	if (!empty($prodOnly)) {
+		echo "\n\033[33mWARNING: The following databases exist only in PROD: " . implode(', ', $prodOnly) . "\033[0m\n";
+		$errors = true;
+	}
 
-    if ($errors) {
-        exit(1);
-    }
+	if ($errors) {
+		exit(1);
+	}
 
-    exit(0);
+	exit(0);
 } catch (Exception $e) {
-    fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
-    exit(1);
+	fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
+	exit(1);
 }
