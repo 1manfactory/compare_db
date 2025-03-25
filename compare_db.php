@@ -308,7 +308,7 @@ function generateDiff(string $devStmt, string $prodStmt, int $context = 3): stri
 
 // Main
 try {
-	loadEnv(__DIR__ . '/.env');
+	loadEnv(__DIR__ . '/../../../.env');
 
 	// Lese Verbindungsdaten für DEV und PROD aus den Umgebungsvariablen
 	$devHost = getenv('DEV_DB_HOST');
