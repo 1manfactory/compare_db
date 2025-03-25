@@ -81,7 +81,7 @@ If differences are detected, the script will also execute additional dump script
 
 ## Contributing
 
-Contributions and improvements are welcome! Please open an issue or submit a pull request if you have any suggestions or bug fixes. Thx.
+Contributions and improvements are welcome! Please open an issue or submit a pull request if you have any suggestions or bug fixes.
 
 ## License
 
