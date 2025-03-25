@@ -1,0 +1,17 @@
+{
+    "name": "1manfactory/compare_db",
+    "description": "A CLI tool to compare MySQL/MariaDB database schema definitions between development and production environments.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=7.4"
+    },
+    "bin": [
+        "compare_db.php"
+    ],
+    "autoload": {
+        "psr-4": {
+            "CompareDb\\": "src/"
+        }
+    }
+}
