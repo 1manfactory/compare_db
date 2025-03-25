@@ -383,10 +383,6 @@ try {
 	}
 
 	if ($errors) {
-		// dump
-		exec(__DIR__ . '/../_schemas/dump npreports', $output);
-		exec(__DIR__ . '/../_schemas/dump npfactory', $output);
-		exec(__DIR__ . '/../_schemas/dump nptestleser', $output);
 		exit(1); // Fehlerstatus für Git Hook
 	}
 
